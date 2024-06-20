@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 
 # Load the pre-trained machine learning model
-with open('models/direct_model_6features.pkl', 'rb') as f:
+with open('models/direct_model_lessfeatures.pkl', 'rb') as f:
     model = pickle.load(f)
 
 # Load the scaler
-with open('models/sscaler_6features.pkl', 'rb') as f1:
+with open('models/sscaler_lessfeatures.pkl', 'rb') as f1:
     scaler = pickle.load(f1)
 
 # Parameters required for the model
