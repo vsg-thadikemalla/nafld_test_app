@@ -12,60 +12,36 @@ with open('models/sscaler_lessfeatures.pkl', 'rb') as f1:
     scaler = pickle.load(f1)
 
 # Parameters required for the model
-# params1 = ['Age', 'Gender', 'Wt', 'DM', 'HB', 'TLC', 'PLT', 'Albumin', 'Serum Alkaline Phosphatase', 'Serum ALT /SGPT', 'Serum AST/SGOT', 'Serum Bilirubin Direct', 'Serum Bilirubin Indirect', 'Serum Bilirubin Total', 'Serum GGT', 'Serum Cholesterol', 'Serum Triglycerides', 'Serum HDL  Cholesterol', 'Serum LDL Cholesterol']'''
-
 params1 = ['Age', 'PLT', 'DM', 'Serum AST/SGOT', 'Serum Cholesterol', 'Serum LDL Cholesterol']
-
-params = ['Age (Years); Range: 18 to 71', 'PLT (10^9/L); Range: 20 to 442', 'Diabetes mellitus (Yes/No); (1- Yes, 2-No) ', 'Serum AST/SGOT (U/L); Range: 11 to 484', 'Serum Cholesterol (mg/L); Range: 34 to 357', 'Serum LDL Cholesterol (mg/L); Range: 9.3 to 233']
+params = ['Age', 'PLT', 'Diabetes mellitus (yes/no)', 'Serum AST/SGOT', 'Serum Cholesterol', 'Serum LDL Cholesterol']
 
 
 def update_color_and_status(value):
-    st.markdown(
-        f"""
-        <style>
-        .progress {{
-            position: relative;
-            width: 100%;
-            height: 30px;
-            background-color: #e0e0df;
-            border-radius: 5px;
-        }}
-        .progress-bar {{
-            position: absolute;
-            height: 100%;
-            width: {value}%;
-            background-color: {"green" if value <= 35 else "#e9d460" if value <= 75 else "red"};
-            border-radius: 5px;
-        }}
-        .progress-line {{
-            position: absolute;
-            height: 100%;
-            width: 2px;
-            background-color: black;
-        }}
-        .line-35 {{
-            left: 35%;
-        }}
-        .line-75 {{
-            left: 75%;
-        }}
-        </style>
-        <div class="progress">
-            <div class="progress-bar"></div>
-            <div class="progress-line line-35"></div>
-            <div class="progress-line line-75"></div>
-        </div>
-        """, unsafe_allow_html=True)
-
     if value <= 35:
-        st.success("NAF - High prediction confidence")
+        pred = "strong"
     elif 35 < value <= 75:
-        st.warning("Weak prediction confidence")
+        pred = "weak"
     else:
-        st.error("AF - High prediction confidence")
+        pred = "strong"
+        
+    return pred
 
-def make_prediction(param_values):
+def make_prediction(param_values,unit_values):
     try:
+        
+        # Convert 'Diabetes mellitus' to numerical values
+        if param_values[2] == "Yes":
+            param_values[2] = 1
+        elif param_values[2] == "No":
+            param_values[2] = 2
+        
+        # Convert select box inputs to binary values for PLT, Serum Cholesterol, and Serum LDL Cholesterol
+
+        if unit_values[0] == "mmol/L":
+            param_values[4] = float(param_values[4]) * 18.018
+        if unit_values[1] == "mmol/L":
+            param_values[5] = float(param_values[5]) * 18.018  
+        
         param_values = [float(value) if value != "" else None for value in param_values]
         param_values = np.array(param_values).reshape(1, -1)
         X_test = pd.DataFrame(param_values, columns=params1)
@@ -94,19 +70,65 @@ if 'param_values' not in st.session_state:
 # Set up Streamlit app interface with title and instructions to enter parameter values
 st.title("NAFLD Prediction App")
 st.markdown("Please enter the following information:")
+unit_values = []
+# Collect user inputs for each parameter using text inputs or select boxes
+for i, param in enumerate(params):
+    # 'Diabetes mellitus' as select box
+    if param.startswith('Diabetes mellitus'):
+        st.session_state.param_values[param] = st.selectbox(param, options=["Yes", "No"], key=param.lower().replace(' ', '_'))
+    # Select boxes for PLT, Serum Cholesterol, Serum LDL Cholesterol
+    elif i in [0]:
+        # Text input for numeric values and select box for Yes/No
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+        with col2:
+            st.text_input(' ',"Years",disabled = True)
+    elif i in [1]:
+        # Text input for numeric values and select box for Yes/No
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+        with col2:
+            st.selectbox(" ", options=["10⁹/L", "10³ / µL"], key=(param.lower() + "_select").replace(' ', '_'))
 
-# Collect user inputs for each parameter using text inputs
-for param in params:
-    # Use param as the key and default value as the value retrieved from session state
-    st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+    elif i in [3]:
+        # Text input for numeric values and select box for Yes/No
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+        with col2:
+            st.text_input(' ',"U/L",disabled = True)
+
+    elif i in [4, 5]:
+        # Text input for numeric values and select box for Yes/No
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+        with col2:
+            unit_values.append(st.selectbox(" ", options=["mg/dl", "mmol/L"], key=(param.lower() + "_select").replace(' ', '_')))
+    else:
+        st.session_state.param_values[param] = st.text_input(param, key=param.lower().replace(' ', '_'), value=st.session_state.param_values[param])
+
 
 if st.button("Predict"):
-    try:
-        param_values_float = [float(value) if value else None for value in st.session_state.param_values.values()]
-        outcome, score = make_prediction(param_values_float)
+    try:   
+        param_values_float = [st.session_state.param_values[param] for param in params]
+        outcome, score = make_prediction(param_values_float, unit_values)
+
         if outcome is not None and score is not None:
-            st.write(f"Prediction: {outcome}")
-            st.write(f"Prediction Score: {score:.2f}%")
-            update_color_and_status(score)
+            outcome_new = f"{outcome}"
+            score_new = f"{score:.2f}%"
+            pred = update_color_and_status(score)
+            pred_new = f"{pred}"
+            
+            # Display predictions in two rows and two columns
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                st.metric("Outcome", outcome_new)
+                st.metric("Prediction confidence", pred_new)
+            with col2:
+                st.metric("Prediction Score:", score_new)
+            
     except ValueError:
         st.error("Please enter valid numerical values for all parameters.")
