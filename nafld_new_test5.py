@@ -66,7 +66,7 @@ if 'param_values' not in st.session_state:
     st.session_state.param_values = {param: "" for param in params}
 
 # Set up Streamlit app interface with title and instructions to enter parameter values
-st.title("NAFLD Prediction App")
+st.title("FAET: Fibrosis Assessment using Extra Tree")
 st.markdown("Please enter the following information:")
 unit_values = []
 # Collect user inputs for each parameter using text inputs or select boxes
